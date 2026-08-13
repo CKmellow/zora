@@ -1,0 +1,55 @@
+[project]
+name = "zora-backend"
+version = "0.1.0"
+description = "Backend foundation for Project Zora"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "uvicorn[standard]>=0.35,<1.0",
+  "sqlalchemy>=2.0.36,<3.0",
+  "psycopg[binary]>=3.2.3,<4.0",
+  "alembic>=1.14,<2.0",
+  "pydantic>=2.10,<3.0",
+  "pydantic-settings>=2.6,<3.0",
+  "email-validator>=2.2,<3.0",
+  "httpx>=0.28,<1.0",
+  "python-multipart>=0.0.12,<1.0",
+  "PyJWT[crypto]>=2.10,<3.0",
+  "supabase>=2.7,<3.0",
+  "python-dotenv>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3,<9.0",
+  "pytest-asyncio>=0.24,<1.0",
+  "ruff>=0.8,<1.0",
+]
+
+[project.scripts]
+dev = "app.cli:dev"
+test = "app.cli:test"
+lint = "app.cli:lint"
+format = "app.cli:format_code"
+migrate = "app.cli:migrate"
+makemigration = "app.cli:makemigration"
+
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
