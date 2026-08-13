@@ -20,7 +20,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    transaction_status = sa.Enum(
+    # 1. Use postgresql.ENUM with create_type=False for columns
+    transaction_status = postgresql.ENUM(
         "PENDING",
         "FUNDED",
         "IN_TRANSIT",
@@ -29,13 +30,19 @@ def upgrade() -> None:
         "DISPUTED",
         "REFUNDED",
         name="transaction_status",
+        create_type=False,
     )
-    payment_status = sa.Enum("PENDING", "COMPLETED", "FAILED", "CANCELLED", name="payment_status")
-    payout_status = sa.Enum("PENDING", "PROCESSING", "COMPLETED", "FAILED", name="payout_status")
-    dispute_status = sa.Enum(
-        "OPEN", "UNDER_REVIEW", "RESOLVED", "REFUNDED", "REJECTED", name="dispute_status"
+    payment_status = postgresql.ENUM(
+        "PENDING", "COMPLETED", "FAILED", "CANCELLED", name="payment_status", create_type=False
+    )
+    payout_status = postgresql.ENUM(
+        "PENDING", "PROCESSING", "COMPLETED", "FAILED", name="payout_status", create_type=False
+    )
+    dispute_status = postgresql.ENUM(
+        "OPEN", "UNDER_REVIEW", "RESOLVED", "REFUNDED", "REJECTED", name="dispute_status", create_type=False
     )
 
+    # 2. Explicitly create the custom Enum types in Postgres once
     bind = op.get_bind()
     transaction_status.create(bind, checkfirst=True)
     payment_status.create(bind, checkfirst=True)
@@ -268,7 +275,7 @@ def downgrade() -> None:
     op.drop_table("users")
 
     bind = op.get_bind()
-    sa.Enum(name="dispute_status").drop(bind, checkfirst=True)
-    sa.Enum(name="payout_status").drop(bind, checkfirst=True)
-    sa.Enum(name="payment_status").drop(bind, checkfirst=True)
-    sa.Enum(name="transaction_status").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="dispute_status").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="payout_status").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="payment_status").drop(bind, checkfirst=True)
+    postgresql.ENUM(name="transaction_status").drop(bind, checkfirst=True)
