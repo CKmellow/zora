@@ -3,21 +3,25 @@
 from functools import lru_cache
 
 import jwt
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import InvalidTokenError, PyJWKClient
 
 from app.core.config import Settings, get_settings
 from app.core.local_auth import decode_access_token
 
+http_bearer = HTTPBearer(auto_error=False)
 
-def extract_bearer_token(authorization: str | None = Header(default=None)) -> str:
-    if not authorization:
+
+def extract_bearer_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(http_bearer),
+) -> str:
+    if credentials is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
 
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
+    if credentials.scheme.lower() != "bearer" or not credentials.credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth header")
-    return parts[1]
+    return credentials.credentials
 
 
 @lru_cache
