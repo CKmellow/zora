@@ -8,6 +8,7 @@ from app.core.database import get_db
 from app.core.logging import get_logger
 from app.repositories.webhook_repository import WebhookRepository
 from app.schemas.webhook import WebhookReceiveResponse
+from app.services.webhook_processing_service import WebhookProcessingService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -54,8 +55,32 @@ async def loop_webhook(request: Request, db: Session = Depends(get_db)) -> Webho
         extra={"source": "loop", "event_id": str(event.id), "payload_keys": sorted(payload.keys())},
     )
 
+    processor = WebhookProcessingService(db)
+    result = processor.process_loop_payload(payload)
+    if result.applied:
+        repository.mark_processed(event)
+        logger.info(
+            "Webhook processed",
+            extra={
+                "source": "loop",
+                "event_id": str(event.id),
+                "transaction_id": result.transaction_id,
+                "status": result.status.value if result.status else None,
+                "reason": result.reason,
+            },
+        )
+    else:
+        repository.mark_failed(event, result.reason)
+        logger.warning(
+            "Webhook processing skipped",
+            extra={
+                "source": "loop",
+                "event_id": str(event.id),
+                "reason": result.reason,
+            },
+        )
+
     # TODO: Verify LOOP callback authenticity/signature.
-    # TODO: Confirm LOOP callback schema and map payment outcomes.
     # TODO: Strengthen idempotency strategy with provider event IDs.
     # TODO: Add transaction reconciliation flow.
 

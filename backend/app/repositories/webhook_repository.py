@@ -28,3 +28,19 @@ class WebhookRepository:
         self.db.commit()
         self.db.refresh(event)
         return event
+
+    def mark_processed(self, event: WebhookEvent) -> WebhookEvent:
+        event.processed = True
+        event.processing_error = None
+        self.db.add(event)
+        self.db.commit()
+        self.db.refresh(event)
+        return event
+
+    def mark_failed(self, event: WebhookEvent, error: str) -> WebhookEvent:
+        event.processed = False
+        event.processing_error = error
+        self.db.add(event)
+        self.db.commit()
+        self.db.refresh(event)
+        return event

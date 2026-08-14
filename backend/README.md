@@ -82,6 +82,9 @@ pytest
 ## 10. API Docs
 - http://localhost:8000/docs
 
+Frontend endpoint reference:
+- `docs/frontend-endpoints.md`
+
 ## 11. LOOP Integration Status
 - Sandbox-oriented configuration is in place.
 - OAuth, payments, payouts, and inquiry methods are scaffolded and intentionally not fully implemented.
@@ -93,11 +96,12 @@ pytest
 - Supabase JWT verification is designed for RS256 with JWKS.
 
 ## 13. Roadmap
-- Implement LOOP OAuth token retrieval endpoint details.
-- Add webhook authenticity verification and strict schema validation.
-- Implement payment-link creation and escrow transaction workflows.
-- Implement payout orchestration and reconciliation.
-- Add transaction state machine guards and richer audit logging.
+- [Done] Feature 1: seller order creation/list + public checkout/pay initiation.
+- [Done] Feature 2 (initial): LOOP webhook callback mapper with guarded transaction state transitions.
+- Next: OTP issuance/verification flow.
+- Next: Escrow approvals (2/3 policy) and dispute evidence references.
+- Next: payout/refund handlers with idempotency keys.
+- Next: reconciliation worker using LOOP transaction inquiry.
 
 ## Common Commands
 ```bash
