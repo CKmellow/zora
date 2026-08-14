@@ -1,13 +1,13 @@
 import hashlib
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.repositories.webhook_repository import WebhookRepository
-from app.schemas.webhook import WebhookReceiveResponse
+from app.schemas.webhook import LoopWebhookRequest, WebhookReceiveResponse
 from app.services.webhook_processing_service import WebhookProcessingService
 
 router = APIRouter()
@@ -20,20 +20,13 @@ def _hash_payload(payload: dict) -> str:
 
 
 @router.post("/loop", response_model=WebhookReceiveResponse)
-async def loop_webhook(request: Request, db: Session = Depends(get_db)) -> WebhookReceiveResponse:
-    try:
-        payload = await request.json()
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload"
-        ) from exc
+async def loop_webhook(
+    payload: LoopWebhookRequest,
+    db: Session = Depends(get_db),
+) -> WebhookReceiveResponse:
+    payload_dict = payload.model_dump(exclude_none=True)
 
-    if not isinstance(payload, dict):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Webhook payload must be JSON object"
-        )
-
-    payload_hash = _hash_payload(payload)
+    payload_hash = _hash_payload(payload_dict)
     repository = WebhookRepository(db)
 
     existing = repository.get_by_payload_hash(source="loop", payload_hash=payload_hash)
@@ -43,20 +36,21 @@ async def loop_webhook(request: Request, db: Session = Depends(get_db)) -> Webho
     event = repository.create_event(
         source="loop",
         payload_hash=payload_hash,
-        payload=payload,
-        headers={
-            "content-type": request.headers.get("content-type", ""),
-            "user-agent": request.headers.get("user-agent", ""),
-        },
+        payload=payload_dict,
+        headers=None,
     )
 
     logger.info(
         "Webhook event received",
-        extra={"source": "loop", "event_id": str(event.id), "payload_keys": sorted(payload.keys())},
+        extra={
+            "source": "loop",
+            "event_id": str(event.id),
+            "payload_keys": sorted(payload_dict.keys()),
+        },
     )
 
     processor = WebhookProcessingService(db)
-    result = processor.process_loop_payload(payload)
+    result = processor.process_loop_payload(payload_dict)
     if result.applied:
         repository.mark_processed(event)
         logger.info(
