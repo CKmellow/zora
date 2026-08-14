@@ -18,3 +18,4 @@ class Merchant(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     owner = relationship("User", back_populates="merchants")
     payment_links = relationship("PaymentLink", back_populates="merchant")
+    orders = relationship("Order", back_populates="merchant")

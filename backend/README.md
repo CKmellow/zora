@@ -54,6 +54,21 @@ Then set:
 alembic upgrade head
 ```
 
+### Development Bootstrap (Explicit)
+If you want one command for dev setup (run migrations + seed data), use:
+```bash
+bootstrap-dev
+```
+
+Or via Make:
+```bash
+make bootstrap-dev
+```
+
+Notes:
+- This command is blocked unless `APP_ENV=development`.
+- It does not run automatically on app startup.
+
 ## 8. Start FastAPI
 ```bash
 uvicorn app.main:app --reload --port 8000
@@ -92,6 +107,8 @@ pytest
 docker compose up -d
 
 alembic upgrade head
+
+bootstrap-dev
 
 uvicorn app.main:app --reload --port 8000
 

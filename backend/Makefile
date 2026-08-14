@@ -1,6 +1,6 @@
 PYTHON ?= python3.12
 
-.PHONY: install dev test lint format migrate makemigration docker-up docker-down
+.PHONY: install dev test lint format migrate makemigration bootstrap-dev docker-up docker-down
 
 install:
 	$(PYTHON) -m pip install --upgrade pip
@@ -23,6 +23,9 @@ migrate:
 
 makemigration:
 	alembic revision --autogenerate -m "$(m)"
+
+bootstrap-dev:
+	bootstrap-dev
 
 docker-up:
 	docker compose up -d

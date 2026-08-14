@@ -35,6 +35,10 @@ def upgrade() -> None:
     dispute_status = sa.Enum(
         "OPEN", "UNDER_REVIEW", "RESOLVED", "REFUNDED", "REJECTED", name="dispute_status"
     )
+    transaction_status_col = postgresql.ENUM(name="transaction_status", create_type=False)
+    payment_status_col = postgresql.ENUM(name="payment_status", create_type=False)
+    payout_status_col = postgresql.ENUM(name="payout_status", create_type=False)
+    dispute_status_col = postgresql.ENUM(name="dispute_status", create_type=False)
 
     bind = op.get_bind()
     transaction_status.create(bind, checkfirst=True)
@@ -107,7 +111,7 @@ def upgrade() -> None:
         sa.Column("external_reference", sa.String(length=128), nullable=True),
         sa.Column("amount", sa.Numeric(precision=18, scale=2), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False, server_default="KES"),
-        sa.Column("status", transaction_status, nullable=False, server_default="PENDING"),
+        sa.Column("status", transaction_status_col, nullable=False, server_default="PENDING"),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
@@ -127,7 +131,7 @@ def upgrade() -> None:
         sa.Column("transaction_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("amount", sa.Numeric(precision=18, scale=2), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False, server_default="KES"),
-        sa.Column("status", payment_status, nullable=False, server_default="PENDING"),
+        sa.Column("status", payment_status_col, nullable=False, server_default="PENDING"),
         sa.Column("provider_reference", sa.String(length=128), nullable=True),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
@@ -146,7 +150,7 @@ def upgrade() -> None:
         sa.Column("transaction_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("amount", sa.Numeric(precision=18, scale=2), nullable=False),
         sa.Column("currency", sa.String(length=3), nullable=False, server_default="KES"),
-        sa.Column("status", payout_status, nullable=False, server_default="PENDING"),
+        sa.Column("status", payout_status_col, nullable=False, server_default="PENDING"),
         sa.Column("provider_reference", sa.String(length=128), nullable=True),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
@@ -165,7 +169,7 @@ def upgrade() -> None:
         sa.Column("transaction_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("reason", sa.String(length=255), nullable=False),
         sa.Column("details", sa.Text(), nullable=True),
-        sa.Column("status", dispute_status, nullable=False, server_default="OPEN"),
+        sa.Column("status", dispute_status_col, nullable=False, server_default="OPEN"),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),

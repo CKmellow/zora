@@ -33,6 +33,7 @@ lint = "app.cli:lint"
 format = "app.cli:format_code"
 migrate = "app.cli:migrate"
 makemigration = "app.cli:makemigration"
+bootstrap-dev = "app.cli:bootstrap_dev"
 
 [build-system]
 requires = ["setuptools>=70", "wheel"]

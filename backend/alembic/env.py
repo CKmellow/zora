@@ -11,6 +11,7 @@ from app.models import (  # noqa: F401
     escrow_transaction,
     ledger_entry,
     merchant,
+    order,
     payment,
     payment_link,
     payout,
