@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -14,10 +16,15 @@ def _signup_payload(email: str) -> dict:
     }
 
 
+def _unique_email(prefix: str) -> str:
+    return f"{prefix}-{uuid4().hex[:8]}@example.com"
+
+
 def test_signup_login_and_profile_upgrade_to_seller() -> None:
     client = TestClient(app)
+    email = _unique_email("flow1")
 
-    signup = client.post("/api/v1/auth/signup", json=_signup_payload("flow1@example.com"))
+    signup = client.post("/api/v1/auth/signup", json=_signup_payload(email))
     assert signup.status_code == 200
     signup_body = signup.json()
     assert signup_body["is_buyer"] is True
@@ -28,7 +35,7 @@ def test_signup_login_and_profile_upgrade_to_seller() -> None:
     me = client.get("/api/v1/auth/me", headers=headers)
     assert me.status_code == 200
     me_user = me.json()["user"]
-    assert me_user["email"] == "flow1@example.com"
+    assert me_user["email"] == email
     assert me_user["is_buyer"] is True
     assert me_user["is_seller"] is False
 
@@ -61,11 +68,12 @@ def test_signup_login_and_profile_upgrade_to_seller() -> None:
 
 def test_signup_as_seller_creates_store_when_provided() -> None:
     client = TestClient(app)
+    email = _unique_email("flow2")
 
     response = client.post(
         "/api/v1/auth/signup",
         json={
-            "email": "flow2@example.com",
+            "email": email,
             "password": "StrongPass123",
             "full_name": "Seller First",
             "phone_number": "254700999222",
@@ -92,13 +100,14 @@ def test_signup_as_seller_creates_store_when_provided() -> None:
 
 def test_login_and_change_password() -> None:
     client = TestClient(app)
+    email = _unique_email("flow3")
 
-    signup = client.post("/api/v1/auth/signup", json=_signup_payload("flow3@example.com"))
+    signup = client.post("/api/v1/auth/signup", json=_signup_payload(email))
     assert signup.status_code == 200
 
     login = client.post(
         "/api/v1/auth/login",
-        json={"email": "flow3@example.com", "password": "StrongPass123"},
+        json={"email": email, "password": "StrongPass123"},
     )
     assert login.status_code == 200
 
@@ -117,12 +126,12 @@ def test_login_and_change_password() -> None:
 
     old_login = client.post(
         "/api/v1/auth/login",
-        json={"email": "flow3@example.com", "password": "StrongPass123"},
+        json={"email": email, "password": "StrongPass123"},
     )
     assert old_login.status_code == 401
 
     new_login = client.post(
         "/api/v1/auth/login",
-        json={"email": "flow3@example.com", "password": "EvenStronger456"},
+        json={"email": email, "password": "EvenStronger456"},
     )
     assert new_login.status_code == 200
