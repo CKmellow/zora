@@ -8,6 +8,7 @@ from app.api.v1 import (
     health,
     merchants,
     orders,
+    otp,
     payment_links,
     transactions,
     users,
@@ -18,6 +19,7 @@ api_v1_router = APIRouter()
 
 api_v1_router.include_router(health.router, tags=["health"])
 api_v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_v1_router.include_router(otp.router, prefix="/auth/otp", tags=["otp"])
 api_v1_router.include_router(users.router, prefix="/users", tags=["users"])
 api_v1_router.include_router(merchants.router, prefix="/merchants", tags=["merchants"])
 api_v1_router.include_router(orders.router, prefix="/orders", tags=["orders"])

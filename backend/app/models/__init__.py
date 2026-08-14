@@ -5,6 +5,7 @@ from app.models.escrow_transaction import EscrowTransaction
 from app.models.ledger_entry import LedgerEntry
 from app.models.merchant import Merchant
 from app.models.order import Order
+from app.models.otp_challenge import OtpChallenge
 from app.models.payment import Payment
 from app.models.payment_link import PaymentLink
 from app.models.payout import Payout
@@ -19,6 +20,7 @@ __all__ = [
     "LedgerEntry",
     "Merchant",
     "Order",
+    "OtpChallenge",
     "Payment",
     "PaymentLink",
     "Payout",
