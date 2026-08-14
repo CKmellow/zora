@@ -14,6 +14,13 @@ class TransactionRepository:
     def list_all(self) -> list[EscrowTransaction]:
         return self.db.query(EscrowTransaction).all()
 
+    def get_by_id(self, transaction_id: UUID) -> EscrowTransaction | None:
+        return (
+            self.db.query(EscrowTransaction)
+            .filter(EscrowTransaction.id == transaction_id)
+            .first()
+        )
+
     def get_by_order_id(self, order_id: UUID) -> EscrowTransaction | None:
         return (
             self.db.query(EscrowTransaction)
