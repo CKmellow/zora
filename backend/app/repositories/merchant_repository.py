@@ -18,6 +18,14 @@ class MerchantRepository:
             .all()
         )
 
+    def get_latest_by_owner(self, owner_user_id: str) -> Merchant | None:
+        return (
+            self.db.query(Merchant)
+            .filter(Merchant.owner_user_id == owner_user_id)
+            .order_by(Merchant.created_at.desc())
+            .first()
+        )
+
     def create(self, merchant: Merchant) -> Merchant:
         self.db.add(merchant)
         self.db.commit()

@@ -69,3 +69,19 @@ def get_current_local_user_claims(token: str = Depends(extract_bearer_token)) ->
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token",
         ) from exc
+
+
+def get_optional_local_user_claims(
+    credentials: HTTPAuthorizationCredentials | None = Depends(http_bearer),
+) -> dict | None:
+    if credentials is None:
+        return None
+    if credentials.scheme.lower() != "bearer" or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth header")
+    try:
+        return decode_access_token(credentials.credentials)
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        ) from exc

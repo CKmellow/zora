@@ -8,7 +8,7 @@ from app.enums.transaction_status import TransactionStatus
 
 
 class OrderCreate(BaseModel):
-    merchant_id: UUID
+    merchant_id: UUID | None = None
     item_name: str = Field(min_length=2, max_length=255)
     item_description: str | None = None
     item_image_url: str | None = None

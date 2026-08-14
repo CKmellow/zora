@@ -64,6 +64,7 @@ class LoopPayoutsAPI:
                 headers={
                     "Authorization": f"Bearer {access_token}",
                     "Content-Type": "application/json",
+                    "X-Loop-Version": "2024-01",
                 },
                 json=request_body,
             )

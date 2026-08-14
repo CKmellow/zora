@@ -25,9 +25,18 @@ class OrderService:
         self.loop_payments_api = LoopPaymentsAPI(LoopHTTPClient())
         self.settings = get_settings()
 
-    def create_order(self, payload: OrderCreate) -> Order:
+    def create_order(self, payload: OrderCreate, owner_user_id: UUID | None = None) -> Order:
+        merchant = None
+        if payload.merchant_id is not None:
+            merchant = self.merchant_repository.get_by_id(str(payload.merchant_id))
+        elif owner_user_id is not None:
+            merchant = self.merchant_repository.get_latest_by_owner(str(owner_user_id))
+
+        if merchant is None:
+            raise ValueError("Merchant not found")
+
         order = Order(
-            merchant_id=payload.merchant_id,
+            merchant_id=merchant.id,
             order_code=self._generate_order_code(),
             item_name=payload.item_name,
             item_description=payload.item_description,

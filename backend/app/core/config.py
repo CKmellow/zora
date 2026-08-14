@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     loop_client_secret: str = ""
     loop_till: str = ""
     loop_signing_secret: str = ""
+    loop_simulate_feature5: bool = False
 
     jwt_audience: str = ""
     jwt_issuer: str = ""
