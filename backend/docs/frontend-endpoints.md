@@ -4,7 +4,7 @@ Base URL (local): `http://127.0.0.1:8000`
 API v1 prefix: `/api/v1`
 
 This file lists only endpoints that are confirmed working in implementation and tests.
-Current confirmed scope: Feature 1, Feature 2, and auth signup/login.
+Current confirmed scope: Feature 1, Feature 2, Feature 3, Feature 4, and auth signup/login.
 
 ## Authentication
 
@@ -41,6 +41,34 @@ Current confirmed scope: Feature 1, Feature 2, and auth signup/login.
 }
 ```
 - Returns: bearer token + role flags.
+
+## OTP (Feature 3)
+
+### POST /api/v1/auth/otp/issue
+- Purpose: issue one-time code challenge for login/verification flows.
+- Auth: required (bearer token from signup/login).
+- Request body:
+```json
+{
+  "subject": "+254700111222",
+  "purpose": "login",
+  "channel": "sms"
+}
+```
+- Returns: `challenge_id`, `expires_at`, `attempts_remaining`, message.
+- Note: current dev flow includes OTP code in message for testability.
+
+### POST /api/v1/auth/otp/verify
+- Purpose: verify code against an issued challenge.
+- Auth: none (challenge-based verification).
+- Request body:
+```json
+{
+  "challenge_id": "uuid",
+  "code": "021423"
+}
+```
+- Returns: verification result with remaining attempts.
 
 ## Orders (Feature 1)
 
@@ -99,14 +127,38 @@ Current confirmed scope: Feature 1, Feature 2, and auth signup/login.
 - Expected callers: LOOP systems only, not frontend clients.
 - Frontend use: none directly.
 
+## Escrow Approvals (Feature 4)
+
+### POST /api/v1/escrow/transactions/{transaction_id}/approvals
+- Purpose: submit one user approval/rejection decision for a transaction.
+- Auth: required (bearer token).
+- Body:
+```json
+{
+  "decision": "approve",
+  "note": "Looks good"
+}
+```
+- Rules:
+  - one decision per user per transaction.
+  - duplicate submission by same user is rejected.
+
+### GET /api/v1/escrow/transactions/{transaction_id}/approvals/summary
+- Purpose: read approval counts and settlement threshold status.
+- Auth: none currently.
+- Returns: `approved_count`, `rejected_count`, `settled_by_approval`, status message.
+- Behavior: when approved count reaches threshold (2), transaction/order can move to `SETTLED`.
+
 ## Typical Frontend Flow (Confirmed)
 
 1. Seller signs up or logs in.
-2. Seller creates order via `POST /orders`.
-3. Seller shares `order_code` link/identifier.
-4. Buyer page fetches order via `GET /checkout/orders/{order_code}`.
-5. Buyer initiates pay via `POST /checkout/orders/{order_code}/pay`.
-6. LOOP callback posts to `POST /webhooks/loop` and status transition is applied.
+2. Seller can issue and verify OTP for protected verification flows.
+3. Seller creates order via `POST /orders`.
+4. Seller shares `order_code` link/identifier.
+5. Buyer page fetches order via `GET /checkout/orders/{order_code}`.
+6. Buyer initiates pay via `POST /checkout/orders/{order_code}/pay`.
+7. LOOP callback posts to `POST /webhooks/loop` and status transition is applied.
+8. Escrow actors submit approvals and monitor summary until settlement threshold is reached.
 
 ## Error Basics
 
