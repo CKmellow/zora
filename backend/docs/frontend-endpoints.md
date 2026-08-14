@@ -3,21 +3,8 @@
 Base URL (local): `http://127.0.0.1:8000`
 API v1 prefix: `/api/v1`
 
-This file explains each currently exposed endpoint, who should call it, and what it is used for.
-
-## Health
-
-### GET /health
-- Purpose: root health probe for uptime checks.
-- Auth: none.
-- Returns: app status and current environment.
-- Frontend use: optional diagnostics page.
-
-### GET /api/v1/health
-- Purpose: versioned health endpoint.
-- Auth: none.
-- Returns: app status and current environment.
-- Frontend use: same as above, preferred if frontend only talks to versioned APIs.
+This file lists only endpoints that are confirmed working in implementation and tests.
+Current confirmed scope: Feature 1, Feature 2, and auth signup/login.
 
 ## Authentication
 
@@ -54,73 +41,6 @@ This file explains each currently exposed endpoint, who should call it, and what
 }
 ```
 - Returns: bearer token + role flags.
-
-### GET /api/v1/auth/me
-- Purpose: return current profile state for role-aware UI.
-- Auth: required (local bearer token from signup/login).
-- Returns: profile with `is_buyer`, `is_seller`, plus identity fields.
-- Frontend use: session bootstrap and toggle buy/sell experiences.
-
-### PATCH /api/v1/auth/me
-- Purpose: update profile details and/or role flags over time.
-- Auth: required.
-- Request body (any subset):
-```json
-{
-  "full_name": "Updated Name",
-  "phone_number": "254700000000",
-  "is_buyer": true,
-  "is_seller": true
-}
-```
-- Frontend use: buyer later becomes seller (or vice versa) without a new account.
-
-### POST /api/v1/auth/change-password
-- Purpose: rotate account password.
-- Auth: required.
-- Request body:
-```json
-{
-  "current_password": "StrongPass123",
-  "new_password": "EvenStronger456"
-}
-```
-- Returns: `204 No Content`.
-
-## Users
-
-### GET /api/v1/users
-- Purpose: placeholder users list endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Merchants
-
-### GET /api/v1/merchants/me
-- Purpose: list stores owned by the logged-in user.
-- Auth: required.
-- Frontend use: seller profile/store switcher and dashboard.
-
-### POST /api/v1/merchants
-- Purpose: create a store for current user (also marks user as seller).
-- Auth: required.
-- Request body:
-```json
-{
-  "name": "My Store",
-  "email": "seller@example.com",
-  "phone_number": "254700111222",
-  "till_number": "123456"
-}
-```
-- Frontend use: seller onboarding for users who started as buyers.
-
-### PATCH /api/v1/merchants/{merchant_id}
-- Purpose: update store details (name/email/phone/till).
-- Auth: required (owner only).
-- Request body: any subset of create fields.
-- Frontend use: seller store settings page.
 
 ## Orders (Feature 1)
 
@@ -171,38 +91,6 @@ This file explains each currently exposed endpoint, who should call it, and what
 - Frontend use: buyer pay action button.
 - Behavior: repeated call for same order returns the same transaction rather than creating duplicates.
 
-## Payment Links
-
-### GET /api/v1/payment-links
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Transactions
-
-### GET /api/v1/transactions
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Escrow
-
-### GET /api/v1/escrow
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Disputes
-
-### GET /api/v1/disputes
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
 ## Webhooks (provider-to-backend only)
 
 ### POST /api/v1/webhooks/loop
@@ -211,18 +99,21 @@ This file explains each currently exposed endpoint, who should call it, and what
 - Expected callers: LOOP systems only, not frontend clients.
 - Frontend use: none directly.
 
-## Typical Frontend Flow (Current)
+## Typical Frontend Flow (Confirmed)
 
-1. User signs up (`/auth/signup`) as buyer, seller, or both.
-2. User logs in (`/auth/login`) and stores bearer token.
-3. Frontend loads `/auth/me` to decide UI role surfaces.
-4. If buyer later wants to sell, frontend toggles role via `PATCH /auth/me` and creates store via `POST /merchants`.
-5. Seller creates order via `POST /orders`.
-6. Seller shares `order_code` link/identifier.
-7. Buyer page fetches order via `GET /checkout/orders/{order_code}` and initiates pay.
+1. Seller signs up or logs in.
+2. Seller creates order via `POST /orders`.
+3. Seller shares `order_code` link/identifier.
+4. Buyer page fetches order via `GET /checkout/orders/{order_code}`.
+5. Buyer initiates pay via `POST /checkout/orders/{order_code}/pay`.
+6. LOOP callback posts to `POST /webhooks/loop` and status transition is applied.
 
 ## Error Basics
 
 - `404`: resource not found (example: unknown `order_code`).
 - `422`: request validation error (bad payload shape/constraints).
 - `500`: server/database/runtime errors.
+
+## Update Rule
+
+Only add endpoints here after they are implemented and verified through endpoint tests.
