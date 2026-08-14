@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from app.integrations.loop.payments import LoopPaymentsAPI
 from app.main import app
 
 
@@ -22,8 +23,21 @@ def _unique_email(prefix: str) -> str:
     return f"{prefix}-{uuid4().hex[:8]}@example.com"
 
 
-def test_escrow_approval_flow_summary() -> None:
+def test_escrow_approval_flow_summary(monkeypatch) -> None:
     client = TestClient(app)
+
+    async def _fake_prompt_payment(self, payload):
+        return {
+            "statusCode": 200,
+            "message": "service process accepted",
+            "data": {
+                "response": {
+                    "transactionRef": "TXN-MOCK-123",
+                }
+            },
+        }
+
+    monkeypatch.setattr(LoopPaymentsAPI, "prompt_payment", _fake_prompt_payment)
 
     email1 = _unique_email("approval1")
     email2 = _unique_email("approval2")

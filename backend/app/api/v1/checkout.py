@@ -34,7 +34,10 @@ async def checkout_pay(
     db: Session = Depends(get_db),
 ) -> CheckoutPayResponse:
     service = OrderService(db)
-    response = service.initiate_checkout(order_code=order_code, phone_number=payload.phone_number)
+    response = await service.initiate_checkout(
+        order_code=order_code,
+        phone_number=payload.phone_number,
+    )
     if response is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return response
