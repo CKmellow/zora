@@ -56,3 +56,5 @@ class CheckoutPayResponse(BaseModel):
     transaction_id: str
     transaction_status: TransactionStatus
     message: str
+    loop_status_code: int | None = None
+    loop_reference: str | None = None

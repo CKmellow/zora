@@ -7,6 +7,7 @@ from app.api.v1 import (
     escrow,
     escrow_approvals,
     health,
+    loop_payouts,
     merchants,
     orders,
     otp,
@@ -26,6 +27,7 @@ api_v1_router.include_router(merchants.router, prefix="/merchants", tags=["merch
 api_v1_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 api_v1_router.include_router(payment_links.router, prefix="/payment-links", tags=["payment-links"])
 api_v1_router.include_router(checkout.router, prefix="/checkout", tags=["checkout"])
+api_v1_router.include_router(loop_payouts.router, prefix="/loop", tags=["loop"])
 api_v1_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
 api_v1_router.include_router(escrow.router, prefix="/escrow", tags=["escrow"])
 api_v1_router.include_router(escrow_approvals.router, prefix="/escrow", tags=["escrow-approvals"])

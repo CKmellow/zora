@@ -4,7 +4,8 @@ Base URL (local): `http://127.0.0.1:8000`
 API v1 prefix: `/api/v1`
 
 This file lists only endpoints that are confirmed working in implementation and tests.
-Current confirmed scope: Feature 1, Feature 2, Feature 3, Feature 4, and auth signup/login.
+Current confirmed scope: Feature 1, Feature 2, Feature 3, Feature 4, Feature 5,
+Feature 6, and auth signup/login.
 
 ## Authentication
 
@@ -115,9 +116,54 @@ Current confirmed scope: Feature 1, Feature 2, Feature 3, Feature 4, and auth si
   "phone_number": "2547XXXXXXXX"
 }
 ```
-- Returns: `{ order_code, transaction_id, transaction_status, message }`.
+- Returns: `{ order_code, transaction_id, transaction_status, message, loop_status_code, loop_reference }`.
 - Frontend use: buyer pay action button.
-- Behavior: repeated call for same order returns the same transaction rather than creating duplicates.
+- Behavior:
+  - repeated call for same order returns the same transaction rather than creating duplicates.
+  - now triggers a LOOP Prompt request to sandbox endpoint:
+    - `POST /gateway/loop-prompt/2/services/process-request`
+
+## LOOP Payouts and Transfers
+
+### POST /api/v1/loop/send-money
+- Purpose: execute Feature 5 send-money payouts via LOOP channels.
+- Auth: none currently (should become role-protected in next hardening pass).
+- Body:
+```json
+{
+  "txn_reference": "tx-unique-ref",
+  "recipient_mobile_no": "254700123456",
+  "amount": 100.00,
+  "purpose_of_payment": "Supplier settlement",
+  "channel": "LOOP",
+  "merchant_till": "133239"
+}
+```
+- Supported channel values and LOOP endpoints:
+  - `LOOP` -> `POST /gateway/send-money-loop/1.0/services/process-service-request2`
+  - `MPESA` -> `POST /gateway/send-money-mpesa/1.0/services/process-request`
+  - `PESALINK` -> `POST /gateway/send-money-pesalink/1.0/services/process-request`
+- Returns: `{ status_code, message, data }` where `status_code` mirrors LOOP response body.
+
+### POST /api/v1/loop/pay-to
+- Purpose: execute Feature 6 pay-to transfer flows.
+- Auth: none currently (should become role-protected in next hardening pass).
+- Body:
+```json
+{
+  "txn_reference": "tx-unique-ref",
+  "merchant_rcv_till": "247247",
+  "account_number": "INV-123",
+  "amount": 350.00,
+  "channel": "MPESAPAYBILL",
+  "merchant_till": "133239"
+}
+```
+- Supported channel values and LOOP endpoints:
+  - `LOOP` -> `POST /gateway/pay-to-looptill/1.0/services/process-request`
+  - `MPESATILL` -> `POST /gateway/pay-to-mpesa-till/1.0/services/process-request`
+  - `MPESAPAYBILL` -> `POST /gateway/pay-to-paybill/1.0/services/process-request`
+- Returns: `{ status_code, message, data }` where `status_code` mirrors LOOP response body.
 
 ## Webhooks (provider-to-backend only)
 
@@ -159,6 +205,8 @@ Current confirmed scope: Feature 1, Feature 2, Feature 3, Feature 4, and auth si
 6. Buyer initiates pay via `POST /checkout/orders/{order_code}/pay`.
 7. LOOP callback posts to `POST /webhooks/loop` and status transition is applied.
 8. Escrow actors submit approvals and monitor summary until settlement threshold is reached.
+9. Seller settlement/disbursement can run through `/api/v1/loop/send-money` (Feature 5).
+10. Merchant/network transfers can run through `/api/v1/loop/pay-to` (Feature 6).
 
 ## Error Basics
 
