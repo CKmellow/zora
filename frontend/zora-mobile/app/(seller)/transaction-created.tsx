@@ -1,21 +1,103 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  ActivityIndicator,
+  Alert,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { useEffect, useState } from 'react';
+
+import { getTransaction } from '../../lib/transactions';
+import { Transaction } from '../../types/transaction';
 
 export default function TransactionCreatedScreen() {
   const router = useRouter();
 
-  const transaction = {
-    product: 'Nike Air Force 1',
-    price: 'KSh 10,000',
-    buyer: 'John',
-    reference: 'ZORA-48291',
-  };
+  const { transactionId } = useLocalSearchParams<{
+    transactionId?: string;
+  }>();
+
+  const [transaction, setTransaction] =
+    useState<Transaction | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTransaction = async () => {
+      if (!transactionId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const storedTransaction =
+          await getTransaction(transactionId);
+
+        setTransaction(storedTransaction);
+      } catch (error) {
+        console.error(
+          'Failed to load transaction:',
+          error
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadTransaction();
+  }, [transactionId]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator
+          size="large"
+          color="#FF3B30"
+        />
+
+        <Text style={styles.loadingText}>
+          Loading transaction...
+        </Text>
+      </View>
+    );
+  }
+
+  if (!transaction) {
+    return (
+      <View style={styles.loadingScreen}>
+        <Text style={styles.errorTitle}>
+          Transaction not found
+        </Text>
+
+        <Text style={styles.errorText}>
+          We couldn't find this transaction on this device.
+        </Text>
+
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() =>
+            router.replace('/(seller)/(tabs)')
+          }
+        >
+          <Text style={styles.primaryButtonText}>
+            Back to home
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const reference = transaction.id;
+
+  const formattedPrice =
+    `KSh ${transaction.price.toLocaleString('en-KE')}`;
+
+  const transactionLink =
+    `https://zora.app/t/${reference}`;
 
   const handleShare = async () => {
     try {
@@ -23,31 +105,41 @@ export default function TransactionCreatedScreen() {
         message:
           `You've got a Zora transaction.\n\n` +
           `${transaction.product}\n` +
-          `${transaction.price}\n\n` +
+          `${formattedPrice}\n\n` +
           `Review and pay securely:\n` +
-          `https://zora.app/t/${transaction.reference}`,
+          `${transactionLink}`,
       });
     } catch (error) {
       console.log('Share failed:', error);
     }
   };
 
-  const handleCopy = () => {
-    console.log(
-      `https://zora.app/t/${transaction.reference}`
-    );
+  const handleCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(transactionLink);
+
+      Alert.alert(
+        'Link copied',
+        'The transaction link has been copied to your clipboard.'
+      );
+    } catch (error) {
+      console.log('Copy failed:', error);
+
+      Alert.alert(
+        'Unable to copy',
+        'We could not copy the transaction link. Please try sharing it instead.'
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
 
-        {/* Success indicator */}
         <View style={styles.successCircle}>
           <Text style={styles.check}>✓</Text>
         </View>
 
-        {/* Heading */}
         <Text style={styles.title}>
           Transaction created
         </Text>
@@ -56,7 +148,6 @@ export default function TransactionCreatedScreen() {
           Your transaction is ready. Share it with your buyer to continue.
         </Text>
 
-        {/* Transaction */}
         <View style={styles.transaction}>
           <View style={styles.transactionHeader}>
             <Text style={styles.transactionLabel}>
@@ -64,7 +155,7 @@ export default function TransactionCreatedScreen() {
             </Text>
 
             <Text style={styles.reference}>
-              {transaction.reference}
+              {reference}
             </Text>
           </View>
 
@@ -75,14 +166,29 @@ export default function TransactionCreatedScreen() {
           </Text>
 
           <Text style={styles.price}>
-            {transaction.price}
+            {formattedPrice}
           </Text>
 
-          {transaction.buyer ? (
+          {transaction.description ? (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.metaLabel}>
+                Description
+              </Text>
+
+              <Text style={styles.description}>
+                {transaction.description}
+              </Text>
+            </View>
+          ) : null}
+
+          {transaction.buyerName ? (
             <View style={styles.buyerRow}>
-              <Text style={styles.metaLabel}>Buyer</Text>
+              <Text style={styles.metaLabel}>
+                Buyer
+              </Text>
+
               <Text style={styles.metaValue}>
-                {transaction.buyer}
+                {transaction.buyerName}
               </Text>
             </View>
           ) : null}
@@ -96,7 +202,6 @@ export default function TransactionCreatedScreen() {
           </View>
         </View>
 
-        {/* Share information */}
         <View style={styles.shareInfo}>
           <Text style={styles.shareTitle}>
             Send this to your buyer
@@ -108,7 +213,6 @@ export default function TransactionCreatedScreen() {
           </Text>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -131,9 +235,10 @@ export default function TransactionCreatedScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Back */}
         <TouchableOpacity
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() =>
+            router.replace('/(seller)/(tabs)')
+          }
           style={styles.backButton}
         >
           <Text style={styles.backText}>
@@ -157,6 +262,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 30,
+  },
+
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: '#F7F7F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#737373',
+  },
+
+  errorTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111111',
+    marginBottom: 8,
+  },
+
+  errorText: {
+    fontSize: 14,
+    color: '#737373',
+    textAlign: 'center',
+    marginBottom: 24,
   },
 
   successCircle: {
@@ -216,6 +349,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#737373',
+    maxWidth: 150,
   },
 
   divider: {
@@ -236,6 +370,17 @@ const styles = StyleSheet.create({
     color: '#111111',
     marginTop: 5,
     marginBottom: 20,
+  },
+
+  descriptionContainer: {
+    marginBottom: 15,
+  },
+
+  description: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#555555',
+    marginTop: 5,
   },
 
   buyerRow: {
@@ -300,6 +445,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
   },
 
   primaryButtonText: {

@@ -15,9 +15,6 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
-import { saveTransaction } from '../../../lib/transactions';
-import { Transaction } from '../../../types/transaction';
-
 export default function CreateScreen() {
   const router = useRouter();
 
@@ -63,24 +60,36 @@ export default function CreateScreen() {
 
   const validateForm = () => {
     if (!product.trim()) {
-      Alert.alert('Missing product', 'Please enter what you are selling.');
+      Alert.alert(
+        'Missing product',
+        'Please enter what you are selling.'
+      );
       return false;
     }
 
     if (product.trim().length < 2) {
-      Alert.alert('Invalid product', 'Please enter a valid product name.');
+      Alert.alert(
+        'Invalid product',
+        'Please enter a valid product name.'
+      );
       return false;
     }
 
     if (!price.trim()) {
-      Alert.alert('Missing price', 'Please enter the transaction amount.');
+      Alert.alert(
+        'Missing price',
+        'Please enter the transaction amount.'
+      );
       return false;
     }
 
     const numericPrice = Number(price.replace(/,/g, ''));
 
     if (isNaN(numericPrice)) {
-      Alert.alert('Invalid price', 'Please enter a valid transaction amount.');
+      Alert.alert(
+        'Invalid price',
+        'Please enter a valid transaction amount.'
+      );
       return false;
     }
 
@@ -106,14 +115,22 @@ export default function CreateScreen() {
   const handleCreateTransaction = async () => {
     if (isCreating) return;
 
-    if (!validateForm()) return;
+    const isValid = validateForm();
+
+    if (!isValid) return;
 
     try {
       setIsCreating(true);
 
       const numericPrice = Number(price.replace(/,/g, ''));
 
-      const transaction: Transaction = {
+      /*
+       * For now, create a local transaction object.
+       *
+       * When your backend is ready, this is where you will
+       * send this object to your API/database.
+       */
+      const transaction = {
         id: `ZR-${Date.now()}`,
         product: product.trim(),
         description: description.trim(),
@@ -124,17 +141,17 @@ export default function CreateScreen() {
         createdAt: new Date().toISOString(),
       };
 
-      // Persist the transaction locally.
-      await saveTransaction(transaction);
+      console.log('Transaction created:', transaction);
 
-      console.log('Transaction saved:', transaction);
-
-      // Only pass the ID through navigation.
-      // The next screen loads the rest from storage.
       router.push({
         pathname: '/transaction-created',
         params: {
           transactionId: transaction.id,
+          product: transaction.product,
+          description: transaction.description,
+          price: String(transaction.price),
+          buyerName: transaction.buyerName,
+          productImage: transaction.productImage ?? '',
         },
       });
     } catch (error) {
@@ -142,7 +159,7 @@ export default function CreateScreen() {
 
       Alert.alert(
         'Something went wrong',
-        'We could not save the transaction. Please try again.'
+        'We could not create the transaction. Please try again.'
       );
     } finally {
       setIsCreating(false);
@@ -159,6 +176,7 @@ export default function CreateScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.eyebrow}>SELLER</Text>
 
@@ -169,6 +187,7 @@ export default function CreateScreen() {
           </Text>
         </View>
 
+        {/* Product name */}
         <View style={styles.section}>
           <Text style={styles.label}>Product name</Text>
 
@@ -183,6 +202,7 @@ export default function CreateScreen() {
           />
         </View>
 
+        {/* Product image */}
         <View style={styles.section}>
           <View style={styles.labelRow}>
             <Text style={styles.label}>Product photo</Text>
@@ -230,6 +250,7 @@ export default function CreateScreen() {
           )}
         </View>
 
+        {/* Description */}
         <View style={styles.section}>
           <View style={styles.labelRow}>
             <Text style={styles.label}>Description</Text>
@@ -253,6 +274,7 @@ export default function CreateScreen() {
           </Text>
         </View>
 
+        {/* Price */}
         <View style={styles.section}>
           <Text style={styles.label}>Price</Text>
 
@@ -265,10 +287,15 @@ export default function CreateScreen() {
               placeholderTextColor="#A3A3A3"
               value={price}
               onChangeText={(text) => {
+                // Allow only numbers and decimal point
                 const cleaned = text.replace(/[^0-9.]/g, '');
+
+                // Prevent multiple decimal points
                 const parts = cleaned.split('.');
 
-                if (parts.length > 2) return;
+                if (parts.length > 2) {
+                  return;
+                }
 
                 setPrice(cleaned);
               }}
@@ -279,6 +306,7 @@ export default function CreateScreen() {
           </View>
         </View>
 
+        {/* Buyer */}
         <View style={styles.buyerSection}>
           <View style={styles.labelRow}>
             <Text style={styles.sectionTitle}>Buyer</Text>
@@ -296,6 +324,7 @@ export default function CreateScreen() {
           />
         </View>
 
+        {/* Information */}
         <View style={styles.info}>
           <View style={styles.infoIcon}>
             <Text style={styles.infoIconText}>i</Text>
@@ -307,6 +336,7 @@ export default function CreateScreen() {
           </Text>
         </View>
 
+        {/* CTA */}
         <TouchableOpacity
           style={[
             styles.button,
@@ -318,7 +348,10 @@ export default function CreateScreen() {
         >
           {isCreating ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator
+                size="small"
+                color="#FFFFFF"
+              />
 
               <Text style={styles.buttonText}>
                 Creating...
