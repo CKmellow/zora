@@ -15,7 +15,7 @@ class LoopPayoutsAPI:
     def _generate_signature(
         self, merchant_till: str, timestamp: str, nonce: str, secret_key: str
     ) -> str:
-        """Computes the lowercase-hex HMAC-SHA256 signature of 'merchantTill|timestamp|nonce'."""
+        """Computes lowercase-hex HMAC-SHA256 signature of 'merchantTill|timestamp|nonce'."""
         signing_string = f"{merchant_till}|{timestamp}|{nonce}"
         return hmac.new(
             secret_key.encode("utf-8"),
@@ -34,19 +34,7 @@ class LoopPayoutsAPI:
         channel: str = "LOOP",
         txn_reference: str | None = None,
     ) -> dict[str, Any]:
-        """Pay directly from a LOOP BIZ account to an M-Pesa buy-goods till.
-
-        This call is fully synchronous with no webhook callbacks.
-
-        :param merchant_till: Your merchant till number sending the funds
-        :param merchant_rcv_till: Destination M-Pesa buy-goods till number
-        :param amount: Amount to pay in KES
-        :param secret_key: LOOP signing secret key for HMAC computation
-        :param account_number: Reference associated with receiving till (defaults to merchant_rcv_till if omitted)
-        :param channel: Channel identifier required by gateway (defaults to 'LOOP')
-        :param txn_reference: Unique UUID v4 for request (auto-generated if omitted)
-        :return: Standardized JSON dict response from LOOP gateway
-        """
+        """Pay directly from a LOOP BIZ account to an M-Pesa buy-goods till."""
         txn_ref = txn_reference or str(uuid.uuid4()).lower()
         nonce = str(uuid.uuid4()).lower()
         timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -83,7 +71,7 @@ class LoopPayoutsAPI:
                 response.raise_for_status()
                 data = response.json()
 
-                # 1. Check Gateway Status Code
+                # 1. Gateway status check
                 status_code = data.get("statusCode")
                 if status_code != 200:
                     error_msg = data.get("message", "Unknown gateway error")
@@ -91,7 +79,7 @@ class LoopPayoutsAPI:
                         f"LOOP Pay to Till failed (statusCode {status_code}): {error_msg}"
                     )
 
-                # 2. Synchronous Transaction Status Check
+                # 2. Transaction status check
                 res_data = data.get("data", {})
                 service_status = res_data.get("serviceTransactionStatus")
                 rsp_code = (
@@ -125,20 +113,7 @@ class LoopPayoutsAPI:
         channel: str = "MPESA",
         txn_reference: str | None = None,
     ) -> dict[str, Any]:
-        """Send money from a LOOP BIZ account directly to a recipient's M-Pesa mobile account.
-
-        This call is synchronous. The response confirms whether the transfer executed.
-
-        :param merchant_till: Your merchant till number sending the funds
-        :param recipient_mobile_no: Mobile number (2547XXXXXXXX, 07XXXXXXXX, or +2547XXXXXXXX)
-        :param amount: Amount to send in KES
-        :param purpose_of_payment: Reason for the payout (used for reconciliation)
-        :param secret_key: LOOP signing secret key for HMAC computation
-        :param channel: Destination rail (defaults to 'MPESA')
-        :param txn_reference: Unique UUID v4 for payout (auto-generated if omitted).
-                              REUSE the same txn_reference only on retries after timeouts or 500/502 errors.
-        :return: Standardized JSON dict response from LOOP gateway
-        """
+        """Send money from a LOOP BIZ account directly to a recipient's M-Pesa mobile account."""
         txn_ref = txn_reference or str(uuid.uuid4()).lower()
         nonce = str(uuid.uuid4()).lower()
         timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -174,7 +149,7 @@ class LoopPayoutsAPI:
                 response.raise_for_status()
                 data = response.json()
 
-                # 1. Gateway Status Code Branching
+                # 1. Gateway status check
                 status_code = data.get("statusCode")
                 if status_code != 200:
                     error_msg = data.get("message", "Unknown error")
@@ -182,7 +157,7 @@ class LoopPayoutsAPI:
                         f"LOOP Send Money failed (statusCode {status_code}): {error_msg}"
                     )
 
-                # 2. Verify Execution Outcome
+                # 2. Transaction status check
                 res_data = data.get("data", {})
                 service_status = res_data.get("serviceTransactionStatus")
                 transfer_status = (
