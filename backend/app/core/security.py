@@ -7,6 +7,7 @@ from fastapi import Depends, Header, HTTPException, status
 from jwt import InvalidTokenError, PyJWKClient
 
 from app.core.config import Settings, get_settings
+from app.core.local_auth import decode_access_token
 
 
 def extract_bearer_token(authorization: str | None = Header(default=None)) -> str:
@@ -54,3 +55,13 @@ def get_current_user_claims(
     settings: Settings = Depends(get_settings),
 ) -> dict:
     return verify_supabase_jwt(token, settings)
+
+
+def get_current_local_user_claims(token: str = Depends(extract_bearer_token)) -> dict:
+    try:
+        return decode_access_token(token)
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+        ) from exc

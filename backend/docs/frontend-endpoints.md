@@ -21,11 +21,71 @@ This file explains each currently exposed endpoint, who should call it, and what
 
 ## Authentication
 
+### POST /api/v1/auth/signup
+- Purpose: create one user account that can act as buyer, seller, or both.
+- Auth: none.
+- Request body (frontend fields to collect):
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123",
+  "full_name": "Jane Doe",
+  "phone_number": "254700111222",
+  "wants_to_buy": true,
+  "wants_to_sell": false,
+  "store_name": null,
+  "till_number": null
+}
+```
+- Notes:
+  - `email`, `password` are required.
+  - For seller-on-signup, set `wants_to_sell=true` and include `store_name`; store gets created automatically.
+  - A user can be both buyer and seller from day one.
+- Returns: bearer token plus role flags (`is_buyer`, `is_seller`) for frontend routing.
+
+### POST /api/v1/auth/login
+- Purpose: sign in existing user and issue bearer token.
+- Auth: none.
+- Request body:
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123"
+}
+```
+- Returns: bearer token + role flags.
+
 ### GET /api/v1/auth/me
-- Purpose: validates bearer token and returns decoded claims.
-- Auth: required (Supabase JWT).
-- Returns: `{ message, claims }`.
-- Frontend use: session bootstrap and role-aware UI routing.
+- Purpose: return current profile state for role-aware UI.
+- Auth: required (local bearer token from signup/login).
+- Returns: profile with `is_buyer`, `is_seller`, plus identity fields.
+- Frontend use: session bootstrap and toggle buy/sell experiences.
+
+### PATCH /api/v1/auth/me
+- Purpose: update profile details and/or role flags over time.
+- Auth: required.
+- Request body (any subset):
+```json
+{
+  "full_name": "Updated Name",
+  "phone_number": "254700000000",
+  "is_buyer": true,
+  "is_seller": true
+}
+```
+- Frontend use: buyer later becomes seller (or vice versa) without a new account.
+
+### POST /api/v1/auth/change-password
+- Purpose: rotate account password.
+- Auth: required.
+- Request body:
+```json
+{
+  "current_password": "StrongPass123",
+  "new_password": "EvenStronger456"
+}
+```
+- Returns: `204 No Content`.
 
 ## Users
 
@@ -37,11 +97,30 @@ This file explains each currently exposed endpoint, who should call it, and what
 
 ## Merchants
 
-### GET /api/v1/merchants
-- Purpose: placeholder merchant list endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
+### GET /api/v1/merchants/me
+- Purpose: list stores owned by the logged-in user.
+- Auth: required.
+- Frontend use: seller profile/store switcher and dashboard.
+
+### POST /api/v1/merchants
+- Purpose: create a store for current user (also marks user as seller).
+- Auth: required.
+- Request body:
+```json
+{
+  "name": "My Store",
+  "email": "seller@example.com",
+  "phone_number": "254700111222",
+  "till_number": "123456"
+}
+```
+- Frontend use: seller onboarding for users who started as buyers.
+
+### PATCH /api/v1/merchants/{merchant_id}
+- Purpose: update store details (name/email/phone/till).
+- Auth: required (owner only).
+- Request body: any subset of create fields.
+- Frontend use: seller store settings page.
 
 ## Orders (Feature 1)
 
@@ -134,11 +213,13 @@ This file explains each currently exposed endpoint, who should call it, and what
 
 ## Typical Frontend Flow (Current)
 
-1. Seller creates order via `POST /api/v1/orders`.
-2. Seller shares `order_code` link/identifier.
-3. Buyer page fetches order via `GET /api/v1/checkout/orders/{order_code}`.
-4. Buyer clicks Pay; frontend calls `POST /api/v1/checkout/orders/{order_code}/pay`.
-5. Frontend polls/refreshes transaction pages as later transaction endpoints are implemented.
+1. User signs up (`/auth/signup`) as buyer, seller, or both.
+2. User logs in (`/auth/login`) and stores bearer token.
+3. Frontend loads `/auth/me` to decide UI role surfaces.
+4. If buyer later wants to sell, frontend toggles role via `PATCH /auth/me` and creates store via `POST /merchants`.
+5. Seller creates order via `POST /orders`.
+6. Seller shares `order_code` link/identifier.
+7. Buyer page fetches order via `GET /checkout/orders/{order_code}` and initiates pay.
 
 ## Error Basics
 
