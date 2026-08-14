@@ -21,6 +21,13 @@ class TransactionRepository:
             .first()
         )
 
+    def get_by_external_reference(self, external_reference: str) -> EscrowTransaction | None:
+        return (
+            self.db.query(EscrowTransaction)
+            .filter(EscrowTransaction.external_reference == external_reference)
+            .first()
+        )
+
     def create_for_order(
         self,
         order_id: UUID,
@@ -37,6 +44,20 @@ class TransactionRepository:
             external_reference=external_reference,
             status=TransactionStatus.PENDING,
         )
+        self.db.add(transaction)
+        self.db.commit()
+        self.db.refresh(transaction)
+        return transaction
+
+    def update_status(
+        self,
+        transaction: EscrowTransaction,
+        status: TransactionStatus,
+    ) -> EscrowTransaction:
+        transaction.status = status
+        if transaction.order is not None:
+            transaction.order.status = status
+            self.db.add(transaction.order)
         self.db.add(transaction)
         self.db.commit()
         self.db.refresh(transaction)
