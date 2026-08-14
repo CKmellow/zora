@@ -10,7 +10,7 @@ class LoopWebhookData(BaseModel):
 
 
 class LoopWebhookRequest(BaseModel):
-    event: str
+    event: str | None = None
     data: LoopWebhookData | dict = {}
     status: str | None = None
     order_code: str | None = None
@@ -19,6 +19,7 @@ class LoopWebhookRequest(BaseModel):
     transaction_code: str | None = None
 
     model_config = ConfigDict(
+        extra="allow",
         json_schema_extra={
             "example": {
                 "event": "payment.completed",

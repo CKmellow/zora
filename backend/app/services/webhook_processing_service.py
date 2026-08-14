@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -56,7 +57,8 @@ class WebhookProcessingService:
 
     def _find_transaction(self, payload: dict) -> EscrowTransaction | None:
         event = payload.get("event")
-        data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+        raw_data = payload.get("data")
+        data = raw_data if isinstance(raw_data, dict) else {}
 
         order_code = data.get("order_code") or payload.get("order_code")
         if isinstance(order_code, str) and order_code:
@@ -77,6 +79,18 @@ class WebhookProcessingService:
             transaction = self.transaction_repository.get_by_external_reference(provider_reference)
             if transaction is not None:
                 return transaction
+
+        # LOOP callback may include a flat "reason" field like
+        # "Payment for order ORD-52CF2308C1" instead of nested order_code.
+        reason = payload.get("reason")
+        if isinstance(reason, str):
+            match = re.search(r"ORD-[A-Z0-9]+", reason.upper())
+            if match:
+                transaction = self.transaction_repository.get_by_external_reference(
+                    f"order:{match.group(0)}"
+                )
+                if transaction is not None:
+                    return transaction
 
         if isinstance(event, str) and event.startswith("payment."):
             transaction_code = data.get("transaction_code") or payload.get("transaction_code")
@@ -107,10 +121,24 @@ class WebhookProcessingService:
             if mapped is not None:
                 return mapped
 
-        data = payload.get("data") if isinstance(payload.get("data"), dict) else {}
+        raw_data = payload.get("data")
+        data = raw_data if isinstance(raw_data, dict) else {}
         status = data.get("status") or payload.get("status")
         if isinstance(status, str):
             normalized = status.upper()
+            provider_status_map = {
+                "COMPLETED": TransactionStatus.FUNDED,
+                "SUCCESS": TransactionStatus.FUNDED,
+                "PENDING": TransactionStatus.PENDING,
+                "FAILED": TransactionStatus.DISPUTED,
+                "CANCELLED": TransactionStatus.REFUNDED,
+                "CANCELED": TransactionStatus.REFUNDED,
+                "REFUNDED": TransactionStatus.REFUNDED,
+            }
+            mapped = provider_status_map.get(normalized)
+            if mapped is not None:
+                return mapped
+
             if normalized in TransactionStatus.__members__:
                 return TransactionStatus[normalized]
 
