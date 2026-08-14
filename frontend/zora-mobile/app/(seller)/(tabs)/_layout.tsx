@@ -19,14 +19,22 @@ export default function TabLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E8E8E8',
-          height: 72,
+
+          // Extra space at the bottom so labels/icons
+          // don't sit against the edge.
+          height: 88,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: 14,
         },
 
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 1,
+        },
+
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
       }}
     >

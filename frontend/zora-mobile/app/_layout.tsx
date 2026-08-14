@@ -9,10 +9,6 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(seller)',
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -20,27 +16,12 @@ export default function RootLayout() {
     <ThemeProvider
       value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
     >
-      <Stack>
-        <Stack.Screen
-          name="(seller)"
-          options={{
-            headerShown: false,
-          }}
-        />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
 
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="(seller)" />
 
-        <Stack.Screen
-          name="(buyer)"
-          options={{
-            headerShown: false,
-          }}
-        />
+        <Stack.Screen name="(buyer)" />
 
         <Stack.Screen
           name="modal"
