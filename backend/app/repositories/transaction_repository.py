@@ -1,5 +1,9 @@
+from decimal import Decimal
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
+from app.enums.transaction_status import TransactionStatus
 from app.models.escrow_transaction import EscrowTransaction
 
 
@@ -9,3 +13,31 @@ class TransactionRepository:
 
     def list_all(self) -> list[EscrowTransaction]:
         return self.db.query(EscrowTransaction).all()
+
+    def get_by_order_id(self, order_id: UUID) -> EscrowTransaction | None:
+        return (
+            self.db.query(EscrowTransaction)
+            .filter(EscrowTransaction.order_id == order_id)
+            .first()
+        )
+
+    def create_for_order(
+        self,
+        order_id: UUID,
+        merchant_id: UUID,
+        amount: Decimal,
+        currency: str,
+        external_reference: str,
+    ) -> EscrowTransaction:
+        transaction = EscrowTransaction(
+            order_id=order_id,
+            merchant_id=merchant_id,
+            amount=amount,
+            currency=currency,
+            external_reference=external_reference,
+            status=TransactionStatus.PENDING,
+        )
+        self.db.add(transaction)
+        self.db.commit()
+        self.db.refresh(transaction)
+        return transaction

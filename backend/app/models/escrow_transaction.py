@@ -11,6 +11,12 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class EscrowTransaction(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "escrow_transactions"
 
+    order_id: Mapped[PGUUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+    )
     payment_link_id: Mapped[PGUUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("payment_links.id", ondelete="SET NULL"), nullable=True
     )
@@ -29,6 +35,7 @@ class EscrowTransaction(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         default=TransactionStatus.PENDING,
     )
 
+    order = relationship("Order", back_populates="transaction")
     payment_link = relationship("PaymentLink", back_populates="transactions")
     payments = relationship("Payment", back_populates="transaction")
     payouts = relationship("Payout", back_populates="transaction")
