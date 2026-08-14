@@ -9,3 +9,26 @@ class MerchantRepository:
 
     def list_all(self) -> list[Merchant]:
         return self.db.query(Merchant).all()
+
+    def list_by_owner(self, owner_user_id: str) -> list[Merchant]:
+        return (
+            self.db.query(Merchant)
+            .filter(Merchant.owner_user_id == owner_user_id)
+            .order_by(Merchant.created_at.desc())
+            .all()
+        )
+
+    def create(self, merchant: Merchant) -> Merchant:
+        self.db.add(merchant)
+        self.db.commit()
+        self.db.refresh(merchant)
+        return merchant
+
+    def get_by_id(self, merchant_id: str) -> Merchant | None:
+        return self.db.query(Merchant).filter(Merchant.id == merchant_id).first()
+
+    def save(self, merchant: Merchant) -> Merchant:
+        self.db.add(merchant)
+        self.db.commit()
+        self.db.refresh(merchant)
+        return merchant

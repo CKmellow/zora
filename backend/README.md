@@ -98,6 +98,7 @@ Frontend endpoint reference:
 ## 13. Roadmap
 - [Done] Feature 1: seller order creation/list + public checkout/pay initiation.
 - [Done] Feature 2 (initial): LOOP webhook callback mapper with guarded transaction state transitions.
+- [In Progress] Auth baseline: local signup/login + adaptive buyer/seller profile + store/till management.
 - Next: OTP issuance/verification flow.
 - Next: Escrow approvals (2/3 policy) and dispute evidence references.
 - Next: payout/refund handlers with idempotency keys.

@@ -3,45 +3,44 @@
 Base URL (local): `http://127.0.0.1:8000`
 API v1 prefix: `/api/v1`
 
-This file explains each currently exposed endpoint, who should call it, and what it is used for.
-
-## Health
-
-### GET /health
-- Purpose: root health probe for uptime checks.
-- Auth: none.
-- Returns: app status and current environment.
-- Frontend use: optional diagnostics page.
-
-### GET /api/v1/health
-- Purpose: versioned health endpoint.
-- Auth: none.
-- Returns: app status and current environment.
-- Frontend use: same as above, preferred if frontend only talks to versioned APIs.
+This file lists only endpoints that are confirmed working in implementation and tests.
+Current confirmed scope: Feature 1, Feature 2, and auth signup/login.
 
 ## Authentication
 
-### GET /api/v1/auth/me
-- Purpose: validates bearer token and returns decoded claims.
-- Auth: required (Supabase JWT).
-- Returns: `{ message, claims }`.
-- Frontend use: session bootstrap and role-aware UI routing.
+### POST /api/v1/auth/signup
+- Purpose: create one user account that can act as buyer, seller, or both.
+- Auth: none.
+- Request body (frontend fields to collect):
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123",
+  "full_name": "Jane Doe",
+  "phone_number": "254700111222",
+  "wants_to_buy": true,
+  "wants_to_sell": false,
+  "store_name": null,
+  "till_number": null
+}
+```
+- Notes:
+  - `email`, `password` are required.
+  - For seller-on-signup, set `wants_to_sell=true` and include `store_name`; store gets created automatically.
+  - A user can be both buyer and seller from day one.
+- Returns: bearer token plus role flags (`is_buyer`, `is_seller`) for frontend routing.
 
-## Users
-
-### GET /api/v1/users
-- Purpose: placeholder users list endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Merchants
-
-### GET /api/v1/merchants
-- Purpose: placeholder merchant list endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
+### POST /api/v1/auth/login
+- Purpose: sign in existing user and issue bearer token.
+- Auth: none.
+- Request body:
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPass123"
+}
+```
+- Returns: bearer token + role flags.
 
 ## Orders (Feature 1)
 
@@ -92,38 +91,6 @@ This file explains each currently exposed endpoint, who should call it, and what
 - Frontend use: buyer pay action button.
 - Behavior: repeated call for same order returns the same transaction rather than creating duplicates.
 
-## Payment Links
-
-### GET /api/v1/payment-links
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Transactions
-
-### GET /api/v1/transactions
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Escrow
-
-### GET /api/v1/escrow
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
-## Disputes
-
-### GET /api/v1/disputes
-- Purpose: placeholder endpoint.
-- Auth: currently none.
-- Returns: not implemented message.
-- Frontend use: none yet.
-
 ## Webhooks (provider-to-backend only)
 
 ### POST /api/v1/webhooks/loop
@@ -132,16 +99,21 @@ This file explains each currently exposed endpoint, who should call it, and what
 - Expected callers: LOOP systems only, not frontend clients.
 - Frontend use: none directly.
 
-## Typical Frontend Flow (Current)
+## Typical Frontend Flow (Confirmed)
 
-1. Seller creates order via `POST /api/v1/orders`.
-2. Seller shares `order_code` link/identifier.
-3. Buyer page fetches order via `GET /api/v1/checkout/orders/{order_code}`.
-4. Buyer clicks Pay; frontend calls `POST /api/v1/checkout/orders/{order_code}/pay`.
-5. Frontend polls/refreshes transaction pages as later transaction endpoints are implemented.
+1. Seller signs up or logs in.
+2. Seller creates order via `POST /orders`.
+3. Seller shares `order_code` link/identifier.
+4. Buyer page fetches order via `GET /checkout/orders/{order_code}`.
+5. Buyer initiates pay via `POST /checkout/orders/{order_code}/pay`.
+6. LOOP callback posts to `POST /webhooks/loop` and status transition is applied.
 
 ## Error Basics
 
 - `404`: resource not found (example: unknown `order_code`).
 - `422`: request validation error (bad payload shape/constraints).
 - `500`: server/database/runtime errors.
+
+## Update Rule
+
+Only add endpoints here after they are implemented and verified through endpoint tests.
